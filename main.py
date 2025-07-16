@@ -68,7 +68,7 @@ def renderVideo(file):
 
 def delete_manim_cache():
     if os.path.exists("media"):
-        subprocess.call(["rm", "-rf", "media/videos"])
+        subprocess.call(["rm", "-rf", "media/"])
         
 
 
