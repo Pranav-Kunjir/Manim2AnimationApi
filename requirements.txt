@@ -1,17 +1,17 @@
 # --- FastAPI + Web ---
-fastapi==0.115.0
-uvicorn[standard]==0.30.6
-pydantic>=2.9
-python-multipart>=0.0.7   # (optional, for file uploads if needed)
+fastapi
+uvicorn
+pydantic
+python-multipart # (optional, for file uploads if needed)
 
 # --- Manim + Rendering ---
-manim==0.18.1
-numpy>=1.23.0
-Pillow>=9.5.0
-pycairo>=1.23.0
-scipy>=1.11.0
-tqdm>=4.65.0
-colour>=0.1.5
+manim
+numpy
+Pillow
+pycairo
+scipy
+tqdm
+colour
 
 # --- Extra utilities ---
-requests>=2.31.0
+requests
