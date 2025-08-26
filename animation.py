@@ -1,100 +1,146 @@
 from manim import *
 
-class InputAndButtonAnimation(Scene):
+class InsertionSortAnimation(Scene):
     def construct(self):
-        self.camera.background_color = "#000000"
+        # 1. Initialize an array of 5 elements
+        array_data = [5, 2, 4, 6, 1]
+        colors = [BLUE_D, GREEN_D, YELLOW_D, ORANGE, PURPLE_D]
+
+        # Create a VGroup for each element (rectangle + number)
+        elements = [
+            VGroup(
+                Rectangle(width=1.2, height=1.2, color=color, fill_color=color, fill_opacity=0.7),
+                Text(str(val), font="Sans")
+            )
+            for val, color in zip(array_data, colors)
+        ]
         
-        # Input Field
-        input_field = RoundedRectangle(
-            width=6,
-            height=0.75,
-            corner_radius=0.2,
-            stroke_color=WHITE,
-            fill_color="#444444",
-            fill_opacity=1,
-            stroke_width=2,
-        ).move_to(UP * 1)
+        # Group them all for initial arrangement and display
+        elements_group = VGroup(*elements).arrange(RIGHT, buff=0.5)
         
-        # Animate Button
-        animate_button_rect = RoundedRectangle(
-            width=2,
-            height=0.6,
-            corner_radius=0.3,
-            stroke_color=WHITE,
-            fill_color="#555555",
-            fill_opacity=1,
-            stroke_width=2,
-        ).move_to(DOWN * 0.5)
+        # Create and position indices
+        indices = VGroup(*[Text(str(i), font="Sans", font_size=36) for i in range(len(array_data))])
+        indices.arrange(RIGHT, buff=1.3).next_to(elements_group, DOWN, buff=0.4)
         
-        animate_button_text = Text(
-            "Animate",
-            font_size=24,
-            color=WHITE,
-        ).move_to(animate_button_rect.get_center())
+        # Title for the animation
+        title = Text("Insertion Sort Algorithm", font_size=48, color=WHITE)
+        title.to_edge(UP)
         
-        animate_button = VGroup(animate_button_rect, animate_button_text)
+        self.play(Write(title), run_time=1)
+        self.play(FadeIn(elements_group, shift=UP), run_time=1)
+        self.play(Write(indices), run_time=1)
+        self.wait(0.5)
         
-        # Typing animation
-        input_text = "Create an animation for f(x) = x^2"
-        typed_text = VGroup()
-        
-        for i, letter in enumerate(input_text):
-            letter_mob = Text(
-                letter,
-                font_size=24,
-                color=WHITE,
-            ).move_to(input_field.get_center()).shift(RIGHT * i * 0.15 - RIGHT * len(input_text) * 0.075)
-            typed_text.add(letter_mob)
-        
-        # Add input field and button first
-        self.add(input_field, animate_button)
-        
-        # Animate typing
+        # Store original positions for reference
+        original_positions = [el.get_center() for el in elements]
+
+        # Insertion Sort Algorithm
+        for i in range(1, len(array_data)):
+            key_val = array_data[i]
+            key_group = elements[i]
+            
+            # Show current step indicator
+            step_text = Text(f"Step {i}: Insert element {key_val} into sorted portion", 
+                           font_size=36, color=YELLOW)
+            step_text.to_edge(UP, buff=0.1)
+            self.play(Write(step_text), run_time=0.5)
+            
+            j = i - 1
+            
+            # Animate lifting the key element to be sorted
+            self.play(key_group.animate.shift(UP * 2), run_time=0.8)
+            self.wait(0.3)
+
+            hole_index = i
+
+            # Inner loop for comparison and shifting
+            while j >= 0 and key_val < array_data[j]:
+                compare_group = elements[j]
+                
+                # Highlight elements being compared
+                self.play(
+                    key_group[0].animate.scale(1.1).set_fill(opacity=1.0),
+                    compare_group[0].animate.scale(1.1).set_fill(opacity=1.0),
+                    run_time=0.8
+                )
+                
+                # Display comparison text
+                comparison_text = MathTex(f"{key_val}", "<", f"{array_data[j]}", font_size=48)
+                comparison_text.move_to(elements_group.get_center() + UP * 3.5)
+                self.play(Write(comparison_text), run_time=0.6)
+                self.wait(0.5)
+
+                # Animate shifting the element to the right
+                target_position = original_positions[j+1]
+                self.play(
+                    compare_group.animate.move_to(target_position),
+                    run_time=1.0
+                )
+                self.play(FadeOut(comparison_text), run_time=0.3)
+
+                # Unhighlight the compared element
+                self.play(
+                    key_group[0].animate.scale(1/1.1),
+                    compare_group[0].animate.scale(1/1.1).set_fill(opacity=0.7),
+                    run_time=0.5
+                )
+                
+                # Update logical data structures for the next iteration
+                array_data[j+1] = array_data[j]
+                elements[j+1] = compare_group
+                hole_index = j
+                
+                j -= 1
+            
+            # If no shifts happened, show the non-swap comparison
+            if j == i - 1 and j >= 0:
+                compare_group = elements[j]
+                self.play(
+                    key_group[0].animate.scale(1.1).set_fill(opacity=1.0),
+                    compare_group[0].animate.scale(1.1).set_fill(opacity=1.0),
+                    run_time=0.8
+                )
+                comparison_text = MathTex(f"{key_val}", "\\ge", f"{array_data[j]}", font_size=48)
+                comparison_text.move_to(elements_group.get_center() + UP * 3.5)
+                self.play(Write(comparison_text), run_time=0.6)
+                self.wait(0.5)
+                self.play(FadeOut(comparison_text), run_time=0.3)
+                self.play(
+                    key_group[0].animate.scale(1/1.1).set_fill(opacity=0.7),
+                    compare_group[0].animate.scale(1/1.1).set_fill(opacity=0.7),
+                    run_time=0.5
+                )
+            
+            # Animate inserting the key into its correct position
+            insert_position = original_positions[hole_index]
+            self.play(key_group.animate.move_to(insert_position), run_time=1.0)
+            
+            # Highlight the moved element with a flash
+            self.play(Flash(key_group, color=GREEN, line_length=0.3, num_lines=12, flash_radius=1.0), run_time=0.8)
+
+            # Update the main data structures for the next outer loop iteration
+            array_data[hole_index] = key_val
+            elements[hole_index] = key_group
+            
+            self.play(FadeOut(step_text), run_time=0.3)
+            self.wait(0.5)
+
+        # Final sorted array highlight
         self.play(
-            LaggedStart(
-                *[Write(letter) for letter in typed_text],
-                lag_ratio=0.1
-            ),
-            run_time=2
+            *[element[0].animate.set_fill(color=GREEN, opacity=0.9) for element in elements],
+            run_time=1.5
         )
         
-        # Button press animation
-        self.play(
-            animate_button_rect.animate.set_fill("#888888"),
-            animate_button_text.animate.scale(0.9),
-            run_time=0.2
-        )
-        self.play(
-            animate_button_rect.animate.set_fill("#555555"),
-            animate_button_text.animate.scale(1/0.9),
-            run_time=0.2
-        )
+        # Conclude the animation
+        final_text = Text("Array sorted using Insertion Sort", font="Sans", color=GREEN_C, font_size=48)
+        final_text.next_to(elements_group, DOWN, buff=1.5)
         
-        self.wait(1)
-        
-        # Mouse cursor animation (using Polygon instead of SVG)
-        mouse_cursor = Polygon(
-            ORIGIN, RIGHT*0.5, UP*0.25,
-            fill_color=WHITE, fill_opacity=1,
-            stroke_color=WHITE
-        ).scale(0.5).move_to(UP * 3 + LEFT * 5)
-        
+        self.play(Write(final_text), run_time=1.2)
+        self.wait(2)
         self.play(
-            mouse_cursor.animate.shift(RIGHT * 5 + DOWN * 3.5),
-            run_time=2
+            FadeOut(title),
+            FadeOut(indices),
+            final_text.animate.to_edge(DOWN, buff=0.5),
+            run_time=1.0
         )
-        
-        self.play(
-            mouse_cursor.animate.shift(RIGHT * 0.1 + UP * 0.1),
-            animate_button_rect.animate.set_fill("#888888"),
-            animate_button_text.animate.scale(0.9),
-            run_time=0.1
-        )
-        self.play(
-            mouse_cursor.animate.shift(LEFT * 0.1 + DOWN * 0.1),
-            animate_button_rect.animate.set_fill("#555555"),
-            animate_button_text.animate.scale(1/0.9),
-            run_time=0.1
-        )
-        
         self.wait(2)

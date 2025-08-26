@@ -62,7 +62,20 @@ def get_latest_video_file() -> str:
 #     os.system(f"manim -pql {file}")
     
 def renderVideo(file):
-    subprocess.run(["manim", "-v", "WARNING", "--format", "mp4", file], check=True)
+    # subprocess.run(["manim", "-v", "WARNING", "--format", "mp4", file], check=True)
+    result = subprocess.run(
+        ["manim", "-v", "WARNING", "--format", "mp4", file],
+        capture_output=True,
+        text=True
+    )
+    
+    if result.returncode != 0:
+        raise subprocess.CalledProcessError(
+            returncode=result.returncode,
+            cmd=result.args,
+            output=result.stdout,
+            stderr=result.stderr
+        )
 
 
 
@@ -103,10 +116,15 @@ def wait_for_file_ready(filepath, timeout=10):
 
 
 
+from fastapi.responses import JSONResponse
+
 @app.post("/render/")
 async def render_video(request: CodeRequest):
     if request.auth != "pranavbhai":
-        raise HTTPException(status_code=403, detail="Invalid API key")
+        return JSONResponse(
+            status_code=403,
+            content={"error": "Invalid API key", "details": "Auth failed"},
+        )
 
     try:
         delete_manim_cache()
@@ -116,20 +134,32 @@ async def render_video(request: CodeRequest):
 
         video_file = get_latest_video_file()
         if not video_file:
-            raise HTTPException(status_code=404, detail="No video file found")
+            return JSONResponse(
+                status_code=404,
+                content={"error": "No video file found", "details": "Manim did not produce output"},
+            )
 
         if not wait_for_file_ready(video_file):
-            raise HTTPException(status_code=408, detail="Video not ready in time")
+            return JSONResponse(
+                status_code=408,
+                content={"error": "Video not ready in time", "details": "File did not reach minimum size in time"},
+            )
 
         print("Returning video:", video_file)
         return FileResponse(video_file, media_type="video/mp4", filename="output.mp4")
 
     except subprocess.CalledProcessError as e:
-        print("Manim rendering error:", e)
-        raise HTTPException(status_code=500, detail=f"Manim error: {e}")
+        print("Manim rendering error:", e.stderr)
+        return JSONResponse(
+            status_code=500,
+            content={"error": "Manim rendering failed", "details": e.stderr},
+        )
 
     except Exception as e:
         print("Unhandled error:", e)
-        raise HTTPException(status_code=500, detail=f"Unhandled: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"error": "Unhandled server error", "details": str(e)},
+        )
 
-   
+
